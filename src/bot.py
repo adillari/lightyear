@@ -5,6 +5,7 @@ import requests
 import json
 import schedule
 import threading
+from hikari.colors import Color
 
 bot = lightbulb.BotApp(
     token = constants.DISCORD_BOT_TOKEN,
@@ -63,7 +64,8 @@ def embed_apod(date=None):
     apod_json = apod_http_request(date)
     embed = hikari.Embed(
         title = apod_json['title'],
-        description = apod_json['explanation']
+        description = apod_json['explanation'],
+        color = hikari.Color(0xff2e65)
     )
     embed.set_image(apod_json['url'])
     
