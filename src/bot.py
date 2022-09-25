@@ -4,8 +4,11 @@ import constants
 import requests
 import json
 import schedule
-import threading
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from hikari.colors import Color
+
+scheduler = AsyncIOScheduler()
+scheduler.start()
 
 bot = lightbulb.BotApp(
     token = constants.DISCORD_BOT_TOKEN,
@@ -39,13 +42,12 @@ async def formatted_help(context):
 @lightbulb.command('apod_set', 'Add APOD job to specified channel.')
 @lightbulb.implements(lightbulb.SlashSubCommand)
 async def schedule_embed_apod(context):
-    await bot.rest.create_message(context.options.channel_id, embed_apod())
+    time = context.options.time.split(':')
+    hour = time[0]
+    minute = time[1]
 
-    # schedule.every().day.at(context.options.time).do(
-    schedule.every(15).seconds.do(send_embed_apod, channel_id=context.options.channel_id)
-    #    send_embed_apod, channel_id=context.options.channel_id
-    # ) 
-    schedule.run_pending()
+    scheduler.add_job(send_embed_apod, trigger='cron', args=[context.options.channel_id], hour=hour, minute=minute)
+    
     await context.respond(
         f'APOD job added to {context.options.channel_id} daily at {context.options.time}.'
     )
