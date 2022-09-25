@@ -3,7 +3,6 @@ import lightbulb
 import constants
 import requests
 import json
-import schedule
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from hikari.colors import Color
 
