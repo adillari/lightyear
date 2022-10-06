@@ -46,23 +46,27 @@ async def schedule_embed_apod(context):
     hour = time[0]
     minute = time[1]
 
+    job_id = f'apod_{context.options.channel_id}'
+    if scheduler.get_job(job_id):
+        scheduler.remove_job(job_id)
+        
     scheduler.add_job(
         send_embed_apod,
         trigger='cron',
         args=[context.options.channel_id],
         hour=hour,
         minute=minute,
-        id=f'apod_{context.options.channel_id}'
+        id=job_id
     )
     
     await context.respond(
         f'APOD job added to {context.options.channel_id} daily at {context.options.time}.'
     )
-
+ 
 async def send_embed_apod(channel_id, date=None):
     apod = embed_apod(date)
     
-    if apod['extras'] != None:
+    if apod['extras']:
         await bot.rest.create_message(channel_id, apod['extras'])
     
     await bot.rest.create_message(channel_id, embed=apod['embed'])
@@ -100,7 +104,7 @@ def embed_apod(date):
 
 def apod_http_request(date):
     apod_url = constants.APOD_URL
-    if date is not None:
+    if date:
         apod_url = f'{apod_url}&date={date}'
 
     response = requests.get(apod_url)
