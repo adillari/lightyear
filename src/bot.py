@@ -24,7 +24,9 @@ async def on_started(event):
 @lightbulb.command('apod', 'Get embed APOD card')
 @lightbulb.implements(lightbulb.SlashCommand)
 async def apod_get(context):
-    await context.respond(embed_apod(context.options.date))
+    pending = await context.respond('Fetching your APOD!')
+    await send_embed_apod(context.channel_id, context.options.date)
+    await pending.delete()
 
 @bot.command
 @lightbulb.option('date', 'Date in YYYY-MM-DD format(Defaults to today)', required=False)
@@ -57,30 +59,52 @@ async def schedule_embed_apod(context):
         f'APOD job added to {context.options.channel_id} daily at {context.options.time}.'
     )
 
-async def send_embed_apod(channel_id):
-    await bot.rest.create_message(channel_id, embed=embed_apod())
+async def send_embed_apod(channel_id, date=None):
+    apod = embed_apod(date)
+    
+    if apod['extras'] != None:
+        await bot.rest.create_message(channel_id, apod['extras'])
+    
+    await bot.rest.create_message(channel_id, embed=apod['embed'])
 
-def embed_apod(date=None):
-    apod_json = apod_http_request(date)
+def embed_apod(date):
+    json = apod_http_request(date)
+    extras = None
     embed = hikari.Embed(
-        title = apod_json['title'],
-        description = apod_json['explanation'],
+        title = json['title'],
+        description = json['explanation'],
         color = hikari.Color(0xff2e65)
     )
-    embed.set_image(apod_json['url'])
-    embed.set_footer(f"APOD for {apod_json['date']}")
+
+    match json['media_type']:
+        case 'image':
+            if 'hdurl' in json:
+                embed.set_image(json['hdurl'])
+            else:
+                embed.set_image(json['url'])
+        case 'video':
+            if 'youtube' in json['url']:
+                extras = f"https://www.youtube.com/watch?v={json['url'][30:]}"
+            else:
+                extras = json['url'] 
+        case _:
+            extras = f"New API behavior. Log for future: media_type = {json['media_type']}"
+
+    footer = f"APOD for {json['date']}"
+    if 'copyright' in json:
+        footer += f" • {json['media_type'].capitalize()} by {json['copyright']}"
+
+    embed.set_footer(footer)
     
-    return embed
+    return { 'embed': embed, 'extras': extras }
 
 def apod_http_request(date):
     apod_url = constants.APOD_URL
     if date is not None:
         apod_url = f'{apod_url}&date={date}'
 
-    print(apod_url)
     response = requests.get(apod_url)
     json_response = json.loads(response.text)
-    print(json_response)
 
     return json_response
 
