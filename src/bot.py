@@ -3,20 +3,22 @@ import lightbulb
 import constants
 import requests
 import json
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from hikari.colors import Color
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.jobstores.mongodb import MongoDBJobStore
 
-scheduler = AsyncIOScheduler()
-scheduler.start()
+scheduler = AsyncIOScheduler(jobstores={'mongo': MongoDBJobStore()})
 
 bot = lightbulb.BotApp(
     token = constants.DISCORD_BOT_TOKEN,
     default_enabled_guilds = constants.ENABLED_GUILDS
 )
 
+scheduler = AsyncIOScheduler(jobstores={'mongo': MongoDBJobStore()})
+
 @bot.listen(hikari.StartedEvent)
 async def on_started(event):
-    # todo: restart jobs in store
+    scheduler.start()
     print('Lightyear has started!')
 
 @bot.command
@@ -46,7 +48,7 @@ async def schedule_embed_apod(context):
     hour = time[0]
     minute = time[1]
 
-    job_id = f'apod_{context.options.channel_id}'
+    job_id = f'{context.guild_id}:{context.options.channel_id}'
     if scheduler.get_job(job_id):
         scheduler.remove_job(job_id)
         
@@ -56,8 +58,13 @@ async def schedule_embed_apod(context):
         args=[context.options.channel_id],
         hour=hour,
         minute=minute,
+        jobstore='mongo',
         id=job_id
     )
+
+    scheduler.print_jobs(jobstore='mongo')
+    jobs = scheduler.get_jobs(jobstore='mongo')
+    print(jobs)
     
     await context.respond(
         f'APOD job added to {context.options.channel_id} daily at {context.options.time}.'
