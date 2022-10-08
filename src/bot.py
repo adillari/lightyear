@@ -40,7 +40,7 @@ async def apod_json(ctx):
 @lightbulb.command('apod_remove', 'Remove scheduled APOD job')
 @lightbulb.implements(lightbulb.SlashCommand)
 async def apod_remove(ctx):
-    job_id = f'{ctx.guild_id}:{ctx.options.channel_id}'
+    job_id = f'apod:{ctx.guild_id}:{ctx.options.channel_id}'
 
     if scheduler.get_job(job_id):
         scheduler.remove_job(job_id)
@@ -66,7 +66,7 @@ async def schedule_embed_apod(ctx):
     hour = time[0]
     minute = time[1]
 
-    job_id = f'{ctx.guild_id}:{ctx.options.channel_id}'
+    job_id = f'apod:{ctx.guild_id}:{ctx.options.channel_id}'
     if scheduler.get_job(job_id):
         scheduler.remove_job(job_id)
         
