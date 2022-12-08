@@ -41,13 +41,11 @@ async def apod_json(ctx):
 @lightbulb.implements(lightbulb.SlashCommand)
 async def apod_remove(ctx):
     job_id = f'apod:{ctx.guild_id}:{ctx.options.channel_id}'
-
     if scheduler.get_job(job_id):
         scheduler.remove_job(job_id)
         await ctx.respond('Job removed successfully')
     else:
         await ctx.respond('Invalid channel id')
-
 
 @bot.command
 @lightbulb.command('show_jobs', 'Show running APOD jobs')
@@ -65,11 +63,9 @@ async def schedule_embed_apod(ctx):
     time = ctx.options.time.split(':')
     hour = time[0]
     minute = time[1]
-
     job_id = f'apod:{ctx.guild_id}:{ctx.options.channel_id}'
     if scheduler.get_job(job_id):
         scheduler.remove_job(job_id)
-        
     scheduler.add_job(
         send_embed_apod,
         trigger='cron',
@@ -79,17 +75,14 @@ async def schedule_embed_apod(ctx):
         jobstore='mongo',
         id=job_id
     )
-    
     await ctx.respond(
         f'APOD job added to {ctx.options.channel_id} daily at {ctx.options.time}.'
     )
  
 async def send_embed_apod(channel_id, date=None):
     apod = embed_apod(date)
-    
     if apod['extras']:
         await bot.rest.create_message(channel_id, apod['extras'])
-    
     await bot.rest.create_message(channel_id, embed=apod['embed'])
 
 def embed_apod(date):
@@ -100,7 +93,6 @@ def embed_apod(date):
         description = json['explanation'],
         color = hikari.Color(0xff2e65)
     )
-
     match json['media_type']:
         case 'image':
             if 'hdurl' in json:
@@ -114,23 +106,18 @@ def embed_apod(date):
                 extras = json['url'] 
         case _:
             extras = f"New API behavior. Log for future: media_type = {json['media_type']}"
-
     footer = f"APOD for {json['date']}"
     if 'copyright' in json:
         footer += f" • {json['media_type'].capitalize()} by {json['copyright']}"
-
     embed.set_footer(footer)
-    
     return { 'embed': embed, 'extras': extras }
 
 def apod_http_request(date):
     apod_url = constants.APOD_URL
     if date:
         apod_url = f'{apod_url}&date={date}'
-
     response = requests.get(apod_url)
     json_response = json.loads(response.text)
-
     return json_response
 
 bot.run()
